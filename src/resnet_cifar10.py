@@ -115,6 +115,7 @@ if predict_from_ckpt:
     from torch.nn import functional as F
     model.eval()
 
+    logits_list = []
     scores_list = []
     labels_list = []
     with torch.no_grad():
@@ -124,8 +125,11 @@ if predict_from_ckpt:
             images = images.to(device)
             labels_list += labels
             outputs = model(images)
-            scores_list += F.softmax(outputs)
+            scores = F.softmax(outputs, dim=1)
+            logits_list += outputs
+            scores_list += scores
     scores_array = np.array([_.cpu().data.numpy() for _ in scores_list])
+    logits_array = np.array([_.cpu().data.numpy() for _ in logits_list])
     labels_array = np.array([_.cpu().data.numpy() for _ in labels_list])
 
     outputs = np.zeros((10000, 11))
@@ -133,6 +137,8 @@ if predict_from_ckpt:
     outputs[:, 1:]  = scores_array
     np.savetxt('../data/cifar10_resnet_small_predictions.txt', outputs, delimiter=',') 
 
+    outputs[:, 1:]  = logits_array
+    np.savetxt('../data/cifar10_resnet_small_logits.txt', outputs, delimiter=',') 
 else:
 
     model = ResNet(ResidualBlock, [2, 2, 2]).to(device)
